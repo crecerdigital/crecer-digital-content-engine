@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crecer Digital — Personal AI Content Engine</title>
+<style>
+  body { font-family: system-ui, sans-serif; background:#0d0d0f; color:#f2ead8; margin:0; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+  h1 { color:#e8b64c; font-size: 1.5rem; margin-bottom: 4px; }
+  .sub { color:#b8ab90; margin-top:0; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.8rem; font-weight:700; }
+  .local { background:#5a4a1f; color:#ffd968; } .live { background:#14532d; color:#86efac; }
+  form { background:#17171b; border:1px solid #2c2c33; border-radius:12px; padding:16px; display:grid; gap:10px; }
+  label { font-size:.85rem; color:#b8ab90; display:grid; gap:4px; }
+  input, select { padding:10px; border-radius:8px; border:1px solid #3a3a44; background:#0d0d0f; color:#f2ead8; }
+  button { background:#e8b64c; color:#141414; font-weight:800; border:0; padding:12px; border-radius:8px; cursor:pointer; }
+  .agent { background:#17171b; border:1px solid #2c2c33; border-radius:12px; padding:16px; margin-top:14px; }
+  .agent h3 { margin:0 0 8px; color:#e8b64c; }
+  pre { white-space:pre-wrap; word-wrap:break-word; background:#0d0d0f; padding:10px; border-radius:8px; }
+  ul { margin:6px 0; } .score { font-size:1.2rem; font-weight:800; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🌅 Crecer Digital — Personal AI Content Engine</h1>
+  <p class="sub">Cinco agentes personales producen el paquete completo de un video corto — y se detienen en la aprobación humana. / Five personal agents produce the full package for one short video — and stop at human approval.</p>
+  <p><span id="mode" class="badge local">…</span></p>
+  <form id="f">
+    <label>Tema / Topic
+      <input id="topic" value="José el soñador: la espera en la cárcel" required>
+    </label>
+    <label>Pilar / Pillar
+      <select id="pillar">
+        <option value="fe">Historias de crecimiento de fe / Faith growth stories</option>
+        <option value="superacion">Superación personal / Personal growth</option>
+        <option value="prosperidad">Leyes de prosperidad / Prosperity principles</option>
+      </select>
+    </label>
+    <label>Plataforma / Platform
+      <select id="platform">
+        <option value="tiktok">TikTok</option>
+        <option value="youtube">YouTube Shorts</option>
+        <option value="facebook">Facebook Reels</option>
+      </select>
+    </label>
+    <label>Idioma / Language
+      <select id="lang"><option value="es">Español</option><option value="en">English</option></select>
+    </label>
+    <button type="submit">▶ Correr los 5 agentes / Run the 5 agents</button>
+  </form>
+  <div id="out"></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+fetch('/api/health').then(r => r.json()).then(h => {
+  const b = $('mode');
+  if (h.mode === 'nebius-live') { b.className = 'badge live'; b.textContent = 'NEBIUS LIVE · ' + (h.model || ''); }
+  else { b.textContent = 'LOCAL DEMO MODE — add NEBIUS_API_KEY to run Nemotron on Token Factory'; }
+});
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function list(a){ return '<ul>' + (a||[]).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>'; }
+$('f').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('out').innerHTML = '<p>Corriendo agentes… / Running agents…</p>';
+  const body = { topic: $('topic').value, pillar: $('pillar').value, platform: $('platform').value, lang: $('lang').value };
+  const r = await fetch('/api/run', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const d = await r.json();
+  const a = d.agents;
+  $('out').innerHTML =
+    '<div class="agent"><h3>1 · Researcher</h3><p><b>Ángulos / Angles:</b></p>' + list(a.researcher.angles) +
+      '<p><b>Dolor de la audiencia / Audience pain:</b> ' + esc(a.researcher.audience_pain) + '</p>' +
+      '<p><b>Gancho elegido / Chosen hook:</b> ' + esc(a.researcher.chosen_hook) + ' · <b>Emoción / Emotion:</b> ' + esc(a.researcher.emotion) + '</p></div>' +
+    '<div class="agent"><h3>2 · Scriptwriter</h3>' + a.scriptwriter.sections.map(s =>
+      '<p><b>' + esc(s.t) + ' · ' + esc(s.label) + ':</b> ' + esc(s.text) + '</p>').join('') +
+      '<p>' + a.scriptwriter.word_count + ' palabras / words · ~' + a.scriptwriter.est_seconds + 's' +
+      (a.scriptwriter.enhanced_by ? ' · ✨ ' + esc(a.scriptwriter.enhanced_by) : '') + '</p></div>' +
+    '<div class="agent"><h3>3 · Producer</h3><p><b>Planos / Shots:</b></p>' + list(a.producer.shot_list) +
+      '<p><b>QC de la casa / House QC:</b></p>' + list(a.producer.qc_checklist) + '</div>' +
+    '<div class="agent"><h3>4 · Publisher</h3><p><b>Títulos / Titles:</b></p>' + list(a.publisher.titles) +
+      '<pre>' + esc(a.publisher.description) + '</pre><p>' + esc(a.publisher.hashtags.join(' ')) + '</p>' +
+      '<p><b>Horario / Slot:</b> ' + esc(a.publisher.posting_slot) + ' · <b>Cross-post:</b> ' + esc(a.publisher.crosspost.join(' · ')) + '</p>' +
+      '<p>' + esc(a.publisher.note) + '</p></div>' +
+    '<div class="agent"><h3>5 · Analyst</h3><p class="score">' + a.analyst.total + ' / ' + a.analyst.max + ' — ' + esc(a.analyst.verdict) + '</p>' +
+      '<p>' + Object.entries(a.analyst.scores).map(([k,v]) => esc(k) + ': ' + v + '/10').join(' · ') + '</p>' + list(a.analyst.notes) + '</div>';
+});
+</script>
+</body>
+</html>
